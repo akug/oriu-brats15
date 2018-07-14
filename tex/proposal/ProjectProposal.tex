@@ -1,0 +1,141 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{fancyhdr}
+\usepackage{fancyheadings}
+%\usepackage[ngerman,german]{babel}
+%\usepackage{german}
+%\usepackage[utf8]{inputenc}
+%\usepackage[latin1]{inputenc}
+\usepackage[active]{srcltx}
+\usepackage{algorithm}
+\usepackage[noend]{algorithmic}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{bbm}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage{ifthen}
+\usepackage{listings}
+\usepackage{struktex}
+\usepackage{hyperref}
+
+  \usepackage{pgfplots}
+  \pgfplotsset{compat=newest}
+  %% the following commands are needed for some matlab2tikz features
+  \usetikzlibrary{plotmarks}
+  \usetikzlibrary{arrows.meta}
+  \usepgfplotslibrary{patchplots}
+  \usepackage{grffile}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%% EDIT THIS PART %%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\Course}{Object Recognition and Image Understanding}
+\newcommand{\Name}{Alexander Kugele, Shuhan Xiao}
+\newcommand{\Semester}{SS 18}
+\newcommand{\Exercise}{6} %  <-- UPDATE ME
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\setlength{\parindent}{0em}
+\topmargin -1.0cm
+\oddsidemargin 0cm
+\evensidemargin 0cm
+\setlength{\textheight}{9.2in}
+\setlength{\textwidth}{6.0in}
+
+%%%%%%%%%%%%%%%
+%% Aufgaben-COMMAND
+\newcommand{\Aufgabe}[1]{
+  {
+  \vspace*{0.5cm}
+  \textsf{\textbf{#1}}
+  \vspace*{0.2cm}
+  
+  }
+}
+%%%%%%%%%%%%%%
+\hypersetup{
+    pdftitle={\Course{}: Excercise sheet \Exercise{}},
+    pdfauthor={\Name},
+    pdfborder={0 0 0}
+}
+
+\lstset{ %
+language=java,
+basicstyle=\footnotesize\tt,
+showtabs=false,
+tabsize=2,
+captionpos=b,
+breaklines=true,
+extendedchars=true,
+showstringspaces=false,
+flexiblecolumns=true,
+}
+
+\title{Exercise sheet \Exercise{}}
+\author{\Name{}}
+
+\begin{document}
+\thispagestyle{fancy}
+\lhead{\sf \large \Course{} \\ \small \Name{}}
+\rhead{\sf \Semester{} }
+\vspace*{0.2cm}
+\begin{center}
+\LARGE \sf \textbf{Exercise sheet \Exercise{}}
+\end{center}
+\vspace*{0.2cm}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Insert your solutions here %%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Project Description}
+
+
+\subsection{Team}
+Shuhan Xiao and Alexander Kugele.
+\subsection{Problem Definition}
+MR images are used for the diagnosis for tumors such as glioblastomas and usually evaluated manually by medical professionals. The goal of our project is to automate the detection, localisation and the segmentation of whole tumor region as well as their different sub-regions (enhancing tumor and tumor core) from MRI scans convolutional neural network based on U-Net models in order to distinguish the tumor from normal cell tissue.\footnote{\url{https://arxiv.org/pdf/1505.04597.pdf}}
+
+\subsection{Dataset}
+We will use MR images acquired with different MR sequences (which can be regarded as different representations) from the 2015 MICCAI BraTS (Brain Tumor Segmentation) challenge\footnote{\url{https://www.smir.ch/BRATS/Start2015}} for which we already have access to. It is also possible to use the most recent version from 2018. \footnote{\url{https://www.med.upenn.edu/sbia/brats2018/data.html}} The manual segmentations will be used as a ground truth. The images are already preprocessed by removing the skull and interpolated to the same resolution. We will only use 2D slices from the data. The data will be augmented by rotating, shifting and flipping the images to introduce further variations and avoid overfitting. 
+\subsection{Approach}
+
+[Alexander]: We want to compare different semantic segmentation approaches, namely a Random
+Forest Classifier with hand-picked features and a Fully Convolutional Network
+(FCN). The FCN can either be
+U-Net\footnote{\url{https://arxiv.org/abs/1505.04597}} or a derivative of it
+(e.g., ENet\footnote{\url{https://arxiv.org/abs/1606.02147}}).\\
+
+[Shuhan]: We will implement a U-Net proposed by Ronneberger, Fischer and Brox using pytorch, which has been quite successful and widely used for segmenting biomedical images. We will introduce dilated convolution as a variation of U-Nets to increase the receptive field \footnote[3]{\url{https://arxiv.org/pdf/1511.07122.pdf}}.\\
+The model will be adapted to our problem and vary hyperparameters such as the learning rate to improve our results.\\
+
+We are going to use the CIP-Pool computers in the Mathematikon.
+\subsection{Evaluation \& Expected Results}
+
+
+The results will be compared with the annotations and the ground truth given and evaluated using cross validation. The comparison will be done with other methods used for that challenge\footnote{\url{https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6975210}}. 
+To evaluate the results, different standard scores are used. The BraTS
+challenge suggests Dice, sensitivity, specificity and the $95\%$-quantile of
+the Hausdorff distance.  Our goal is to achieve a reasonable performance speed for our available hardware with comparable accuracy with other state-of-the-art methods. We expect that U-net works better than a simple Random
+Forest, but given the short time of the project we will not be able to come
+close to the scores of the winners of
+2015\footnote{\url{https://www.smir.ch/BRATS/Start2015\#evaluation}}. The
+combination of Dice score and Hausdorff distance indicate the area of correct
+segmentation and the distance between the areas that do not overlap.
+
+\subsubsection*{Presentation Date}
+Both dates are possible, but the 23rd July is preferred as a presentation date.
+
+
+
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}
