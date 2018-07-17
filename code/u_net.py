@@ -27,7 +27,9 @@ def dice_loss(input, target):
     smooth = 1.
 
     iflat = input.view(-1)
+    
     tflat = target.view(-1)
+    
     intersection = (iflat * tflat).sum()
 
     return 1.0 - (((2. * intersection + smooth) /
@@ -218,50 +220,54 @@ def train(model, dset, n_epochs=10, batch_size=2, use_gpu=True):
 def test(model, dset, n_classes):
 
     dloader = DataLoader(dset, batch_size=1, shuffle=False)
-    sums = [0.0, 0.0]
+    #sums = [0.0, 0.0]
     dice = 0
+    #jj = 0
+    N = len(dloader)
     for ii, (x, y) in enumerate(dloader):
-            y_pred = np.argmax(model(x).detach().numpy(), axis=1)
-            y_pred_1h = np.eye(n_classes)[y_pred] #one hot vector
-            y = y.detach().numpy()
-            y[y>0] = 1
-            y_1h = np.eye(n_classes)[y]
-            #np.savez_compressed('./test.npz', x=x.numpy(), y_pred=y_pred, y=y)
-            #break
-            #sums[0] += (y_pred>0).sum()
-            #sums[1] += (y>0).sum()
-            dice_sc = dice_score(y_pred_1h,y_1h)
-            dice += dice_sc
-            if ii%10==0:
-                print(dice_sc)
-            if ii%100:
-                print('dice score so far: {}'.format(ii))
-                print(dice/ii)
-    
-    np.savez_compressed('./test_sum.npz', sums=sums, dice=dice)
-    return sums, dice
+        y_pred = np.argmax(model(x).detach().numpy(), axis=1)
+        y_pred[y_pred>0] = 1
+        y_pred_1h = np.eye(n_classes)[y_pred] #one hot vector
+        y_pred_1h = y_pred_1h.squeeze()[:,:,1]
+        y = y.detach().numpy()
+        y[y>0] = 1
+        y_1h = np.eye(n_classes)[y]
+        y_1h = y_1h.squeeze()[:,:,1]
+        dice_sc = dice_score(y_pred_1h,y_1h)
+        dice += dice_sc
+        #jj += 1
+        if ii%400==0:
+            print(dice_sc)
+            #print('dice score so far (step {}): {}'.format(jj,dice/jj))
+            #np.savez_compressed('./test_sum.npz', dice=dice, steps=jj)
+            print('dice score so far (step {}): {}'.format(ii,dice/(ii+1)))
+        if ii%1000==0:
+            np.savez_compressed('./test_dice.npz', dice=dice/(ii+1), steps=ii)
+
+
+    np.savez_compressed('./test_dice.npz',dice=dice/N, steps=ii)
+    #return dice, y_1h, y_pred_1h,x.detach().numpy()
+    return dice
 
 if __name__ == '__main__':
 
     n_classes = 5
-    model = UNet(n_classes)  
     use_gpu = torch.cuda.is_available()
-    
-    
-#    dset_train=Brats15NumpyDataset('./data/brats2015_MR_T2.h5', train=True, train_split=0.8, random_state=-1,
-#                 transform=None, preload_data=False, tensor_conversion=False)
-#    
-#    train(model, dset_train, n_epochs=5, batch_size=2, use_gpu=use_gpu)
-    if use_gpu:
-        checkpoint = torch.load('training-10.ckpt') #gpu
-    else:
-        checkpoint= torch.load('training-10.ckpt',map_location=lambda storage, location: storage)
-    
-    model.load_state_dict(checkpoint)
+    if 'model' not in locals(): # only reload if model doesn't exist
+        model = UNet(n_classes)  
+        if use_gpu:
+            checkpoint = torch.load('training-10.ckpt') #gpu
+        else:
+            checkpoint= torch.load('training-10.ckpt',map_location=lambda storage, location: storage)   
+    #    dset_train=Brats15NumpyDataset('./data/brats2015_MR_T2.h5', train=True, train_split=0.8, random_state=-1,
+    #                 transform=None, preload_data=False, tensor_conversion=False)
+    #    train(model, dset_train, n_epochs=5, batch_size=2, use_gpu=use_gpu) 
+        model.load_state_dict(checkpoint)
+    #test    
     dset_test=Brats15NumpyDataset('./data/brats2015_MR_T2.h5', train=False, train_split=0.8, random_state=-1,
                  transform=None, preload_data=False, tensor_conversion=False)
-    meansums, dice = test(model, dset_test, n_classes)
-    print(dice/8494)
+    #dice, y, y_pred,x = test(model, dset_test, 2)
+    dice = test(model, dset_test, 2)
     
 
 #%%    
@@ -274,3 +280,17 @@ if __name__ == '__main__':
 #    loss.backward()
 #    end = time.time()
 #    print(end - start)
+    
+#%%
+#import matplotlib.pyplot as plt
+#y = y.squeeze()
+#y_pred = y_pred.squeeze()
+#x = x.squeeze()
+#plt.figure()
+#plt.subplot(1,3,1)
+#plt.imshow(np.argmax(y,axis=2))
+#plt.subplot(1,3,2)
+#plt.imshow(np.argmax(y_pred,axis=2))
+#plt.subplot(1,3,3)
+#plt.imshow(x)
+#
