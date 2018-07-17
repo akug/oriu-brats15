@@ -18,11 +18,11 @@ try:
 except ImportError:
     print_fn = print
     has_tqdm = False
-import time
+
 
 from load import Brats15NumpyDataset
 
-
+#%%
 def dice_loss(input, target):
     smooth = 1.
 
@@ -33,6 +33,25 @@ def dice_loss(input, target):
     return 1.0 - (((2. * intersection + smooth) /
               (iflat.sum() + tflat.sum() + smooth)))
     
+def dice_score(input, target):
+    smooth = 1.
+
+    iflat = input.flatten()
+    tflat = target.flatten()
+    intersection = np.sum(iflat * tflat)
+
+    return ((2. * intersection + smooth) /
+              (np.sum(iflat) + np.sum(tflat) + smooth))
+
+
+def dice_coef(y_true, y_pred):
+    y_true_f = np.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
+    intersection = K.sum(y_true_f * y_pred_f)
+    return (2.0 * intersection + 1.0) / (K.sum(y_true_f) + K.sum(y_pred_f) + 1.0)
+
+
+
 def initialize_weights(*models):
     for model in models:
         for module in model.modules():
@@ -80,6 +99,8 @@ class DownConv(nn.Module):
 class UpConv(nn.Module):
     # perfoms 2 3x3 convolutions (with ReLU) and a 2x2 max pooling operation
     # use Batch Normalisation to speed up training
+    # based on: https://github.com/zijundeng/pytorch-semantic-segmentation/blob/master/models/u_net.py
+    # and https://github.com/jaxony/unet-pytorch/blob/master/model.py
     def __init__(self, in_channels, middle_channels, out_channels):
         super(UpConv, self).__init__()
 
@@ -102,17 +123,14 @@ class UpConv(nn.Module):
     
     
 class UNet(nn.Module):
-
+    # UNet with depth 4
     def __init__(self, n_classes):
         super(UNet, self).__init__()
 
         self.down1 = DownConv(1, 64)
         self.down2 = DownConv(64, 128)
         self.down3 = DownConv(128, 256, dropout=True)
-        #self.down4 = DownConv(256, 512, dropout=True)
-        #self.center = UpConv(512, 1024, 512)
         self.center = UpConv(256, 512, 256)
-        #self.up4 = UpConv(1024, 512, 256)
         self.up3 = UpConv(512, 256, 128)
         self.up2 = UpConv(256, 128, 64)
         self.up1 = nn.Sequential(
@@ -130,27 +148,26 @@ class UNet(nn.Module):
         down1 = self.down1(x)
         down2 = self.down2(down1)
         down3 = self.down3(down2)
-        #down4 = self.down4(down3)
         center = self.center(down3)
-        #up4 = self.up4(torch.cat([center, F.upsample(down4, center.size()[2:], mode='bilinear', align_corners=True)], 1))
         up3 = self.up3(torch.cat([center, F.upsample(down3, center.size()[2:], mode='bilinear', align_corners=True)], 1))
         up2 = self.up2(torch.cat([up3, F.upsample(down2, up3.size()[2:], mode='bilinear', align_corners=True)], 1))
         up1 = self.up1(torch.cat([up2, F.upsample(down1, up2.size()[2:], mode='bilinear', align_corners=True)], 1))
         final = self.final(up1)
         return F.upsample(final, x.size()[2:], mode='bilinear',align_corners=True)
     
-def train(model, dset, n_epochs=10, batch_size=2, use_gpu=False):
+def train(model, dset, n_epochs=10, batch_size=2, use_gpu=True):
 
     dloader = DataLoader(dset, batch_size=batch_size, shuffle=True)
     if use_gpu:
         model.cuda()
         
     Loss = nn.CrossEntropyLoss()
+    # TODO: use different loss (e.g. BCE -> one hot encoded y or Dice)
     Optimizer = torch.optim.Adam(model.parameters()) 
     for e in range(n_epochs):
         for e_step, (x, y) in enumerate(dloader):
             print(e_step)
-            
+            print(y)
             train_step = e_step + len(dloader)*e
             #print(x.size())
             #x = x.numpy()
@@ -161,9 +178,7 @@ def train(model, dset, n_epochs=10, batch_size=2, use_gpu=False):
             #x = torch.from_numpy(x)
             #y = torch.from_numpy(y)
             y = y.long()
-            
-            #if x.ndim == 2:
-            #    x = x[None, :]                
+                
             if use_gpu:
                 x = x.cuda()
                 y = y.cuda()
@@ -177,15 +192,9 @@ def train(model, dset, n_epochs=10, batch_size=2, use_gpu=False):
             
             #y_flat = y.view(-1)
             # Loss
-            #print('loss')
-            #print(y_flat.size())
-            #print(pred_probs_flat.size())
-            #print(y.size())
-            #print(prediction.size())
-            #loss = Loss(pred_probs_flat, y_flat)
-            loss = Loss(prediction, y.squeeze())
+            loss = Loss(prediction, y.squeeze(1))
             #print('acc')
-            #acc = torch.mean(torch.eq(torch.argmax(prediction, dim=-1),y).float())
+		            #acc = torch.mean(torch.eq(torch.argmax(prediction, dim=-1),y).float())
             Optimizer.zero_grad()
             # Backward
             #print('backward')
@@ -195,31 +204,73 @@ def train(model, dset, n_epochs=10, batch_size=2, use_gpu=False):
             if train_step % 25 == 0:
 #                print('{}: Batch-Accuracy = {}, Loss = {}'\
 #                          .format(train_step, float(acc), float(loss)))
-                print('{}: Loss = {}'.format(train_step, float(loss)))
-        torch.save(model.state_dict(), 'training-{}.ckpt'.format(e))
-        if (e+1) % 5 == 0:
-            checkpoint = {
-                'epoch': e + 1,
-                'state_dict': model.state_dict(),
-                'optimizer' : Optimizer.state_dict(),
-            }
-            torch.save(checkpoint, 'unet1024-{}'.format(e+1))
+            	print('{}: Loss = {}'.format(train_step, float(loss)))
+        if train_step % 10000 == 0:
+             torch.save(model.state_dict(), 'training-{}-{}.ckpt'.format(e,train_step))
 
+        checkpoint = {
+            'epoch': e + 1,
+            'state_dict': model.state_dict(),
+            'optimizer' : Optimizer.state_dict(),
+        }
+        torch.save(checkpoint, 'unet1024-{}'.format(e+1))
+
+def test(model, dset, n_classes):
+
+    dloader = DataLoader(dset, batch_size=1, shuffle=False)
+    sums = [0.0, 0.0]
+    dice = 0
+    for ii, (x, y) in enumerate(dloader):
+            y_pred = np.argmax(model(x).detach().numpy(), axis=1)
+            y_pred_1h = np.eye(n_classes)[y_pred] #one hot vector
+            y = y.detach().numpy()
+            y[y>0] = 1
+            y_1h = np.eye(n_classes)[y]
+            #np.savez_compressed('./test.npz', x=x.numpy(), y_pred=y_pred, y=y)
+            #break
+            #sums[0] += (y_pred>0).sum()
+            #sums[1] += (y>0).sum()
+            dice_sc = dice_score(y_pred_1h,y_1h)
+            dice += dice_sc
+            if ii%10==0:
+                print(dice_sc)
+            if ii%100:
+                print('dice score so far: {}'.format(ii))
+                print(dice/ii)
     
+    np.savez_compressed('./test_sum.npz', sums=sums, dice=dice)
+    return sums, dice
+
 if __name__ == '__main__':
 
     n_classes = 5
+    model = UNet(n_classes)  
     use_gpu = torch.cuda.is_available()
-#    start = time.time()
-    model = UNet(n_classes)
+    
+    
+#    dset_train=Brats15NumpyDataset('./data/brats2015_MR_T2.h5', train=True, train_split=0.8, random_state=-1,
+#                 transform=None, preload_data=False, tensor_conversion=False)
+#    
+#    train(model, dset_train, n_epochs=5, batch_size=2, use_gpu=use_gpu)
+    if use_gpu:
+        checkpoint = torch.load('training-10.ckpt') #gpu
+    else:
+        checkpoint= torch.load('training-10.ckpt',map_location=lambda storage, location: storage)
+    
+    model.load_state_dict(checkpoint)
+    dset_test=Brats15NumpyDataset('./data/brats2015_MR_T2.h5', train=False, train_split=0.8, random_state=-1,
+                 transform=None, preload_data=False, tensor_conversion=False)
+    meansums, dice = test(model, dset_test, n_classes)
+    print(dice/8494)
+    
+
+#%%    
+##############################    
 ##   test using random tensor:
+#    start = time.time()
 #    x = Variable(torch.FloatTensor(np.random.random((1, 3, 80, 80))))
 #    out = model(x)
 #    loss = torch.sum(out)
 #    loss.backward()
 #    end = time.time()
 #    print(end - start)
-    dset_train=Brats15NumpyDataset('./data/numpy/brats2015_MR_T2.h5', True, train_split=0.8, random_state=-1,
-                 transform=None, preload_data=False, tensor_conversion=False)
-    
-    train(model, dset_train, n_epochs=30, batch_size=2, use_gpu=use_gpu)
