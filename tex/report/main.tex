@@ -7,6 +7,7 @@
 % to avoid loading the natbib package, add option nonatbib:
 % \usepackage[nonatbib]{nips_2017}
 
+\PassOptionsToPackage{compress,authoryear,round}{natbib}
 \usepackage{nips_2017}
 
 % to compile a camera-ready version, add the [final] option, e.g.:
@@ -15,7 +16,8 @@
 \usepackage[utf8]{inputenc} % allow utf-8 input
 \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
 \usepackage{hyperref}       % hyperlinks
-\hypersetup{
+\hypersetup{colorlinks=true,linkcolor=black,citecolor=black,filecolor=black,urlcolor=black,
+            plainpages=false,pdfpagelabels,breaklinks=true,
   pdftitle    = {Brain Tumor Segmentation with Random Forests and Neural Networks},
   pdfsubject  = {},
   pdfauthor   = {Shuhan Xiao and Alexander Kugele},
@@ -37,6 +39,9 @@
 \usepackage{graphicx}
 \graphicspath{{fig/}{../figures/}}
 
+\usepackage{siunitx}
+\usepackage{enumitem}
+\usepackage{cleveref}
 
 \title{Brain Tumor Segmentation with Random Forests and Neural Networks}
 
@@ -58,6 +63,114 @@
 .
 \end{abstract}
 
-\section{}
+\section{The Dataset}
+
+\subsection{General Information}
+Image segmentation is primarily done in two ways: Either designing an algorithm
+from first principles or using available data to train an algorithm. As for
+this challenge, designing an algorithm without data is very difficult, the
+method of choice is training an algorithm from data. For the Multimodal Brain
+Tumor Image Segmentation Benchmark \citep{BRATS} in 2015, 3D MR tumor scans
+where collected from the BRATS 2012 and BRATS 2013 challenge and from the NIH
+Cancer Imaging Archive (TCIA). In total, data for 55 low-grade glioma patients
+and 220 high-grade glioma patients is provided. The data is a 16-bit 3D scan of
+shape (depth=155, height=240, width=240), where all datasets have been aligned
+to the same anatomical template and interpolated to \SI{1}{\mm^3} voxel
+resolution. For each patient, four scan types are available: T1, T1c, T2 and
+Flair. In the case of the BRATS data, the labels are from expert annotations of
+one to four raters. The TCIA data labels were obtained by fusing the results of
+multiple segmentation algorithms from the BRATS 2012 and BRATS 2013 challenge
+and reviewed by expert raters.\\
+Four classes are predefined:
+\begin{enumerate}[label=\arabic*),topsep=0pt]
+  \setcounter{enumi}{-1}
+\item background
+\item necrosis
+\item edema
+\item non-enhancing tumor
+\item enhancing tumor
+\end{enumerate}
+Each 3D image for each scan type is saved in a seperate \verb+.mha+ file. The
+average size per file is about \SI{2.2}{MB}, leading to approximately
+$\SI{2.2}{MB}\cdot 275 \cdot 4 = \SI{2420}{MB}$ of compressed data.
+Uncompressed, the data size increases to about \SI{60}{GB}. In
+\cref{fig:dataex}, examples for LGG and HGG and the different scan types are
+shown.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.9\textwidth]{test_image84}
+\caption{Dataset examples. }
+\label{fig:dataex}
+\end{figure}
+
+\subsection{Utilizing the Dataset}
+The given images are sliced 3D scans. As we want to do segmentation in two
+dimensions, we just take each slice as a separate input image. In total, this
+are $155\cdot275\cdot4 = 170500$ input images. This full dataset proved too be
+to large to use it for training. After trying out multiple subsets, it was
+decided to use only the LGG part of the dataset and to sort out images where
+the tumor to background ratio is less than $0.1\%$. This dataset only takes
+\SI{110}{MB} compressed on disk. We split this dataset of 3315 images further
+up into a training set of 2652 images ($80\%$) and a test set of 663 images.
+This dataset is used for both the random forest and the U-Net. The classes are
+reduced from five to two: background and tumor.
+
+\section{Random Forest}
+The random forest is a set of decision trees, where each tree is fitted to a
+random subset of the data and predictions are made by taking averages over the
+predictions of individual trees. It 
+
+\subsection{Features}
+A random forest classifies each pixel separately. To include information about
+the local structure, instead of using only the pixel intensities, multiple
+features are defined, such that each input pixel is an N-dimensional vector.\\
+The features we chose for this task are:
+\begin{enumerate}
+\item Gaussian filter
+\begin{itemize}
+\item Convolution with a Gaussian kernel
+\item Smoothes the image
+\end{itemize}
+\item Laplacian of Gaussian (LoG) filter
+\begin{itemize}
+\item Convolution with the Laplacian of a Gaussian kernel
+\item highlights edges (edges are 0)
+\end{itemize}
+\item Gaussian gradient magnitude filter
+\begin{itemize}
+\item Convolution with the gradient of a Gaussian kernel
+\item highlights edges (edges are extrema)
+\end{itemize}
+\item Eigenvalues of the Hessian matrix
+\begin{itemize}
+\item determines the surface concavity
+\end{itemize}
+\item Eigenvalues of the structure tensor
+\begin{itemize}
+\item Summarizes gradient direction
+\end{itemize}
+\item Equalized histogram
+\begin{itemize}
+\item Enhances contrast
+\end{itemize}
+\end{enumerate}
+
+Except the equalized histogram, they all share the tuneable kernel width
+$\sigma$, which is set to $\{0.3, 0.7, 1., 3.5\}$.
+
+In principle one could also utilize the different scan types as features.
+However, the dataset is already very big and therefore it was decided to not
+take the other scan types as features.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.9\textwidth]{features_t}
+\caption{Features for the random forest. }
+\label{fig:features}
+\end{figure}
+
+\bibliographystyle{plainnat}
+\bibliography{../biblio}\vspace{0.75in}
 
 \end{document}
