@@ -18,7 +18,7 @@
 \usepackage{hyperref}       % hyperlinks
 \hypersetup{colorlinks=true,linkcolor=black,citecolor=black,filecolor=black,urlcolor=black,
             plainpages=false,pdfpagelabels,breaklinks=true,
-  pdftitle    = {Brain Tumor Segmentation with Random Forests and Neural Networks},
+  pdftitle    = {Brain Tumor Segmentation with Random Forest and U-Net},
   pdfsubject  = {},
   pdfauthor   = {Shuhan Xiao and Alexander Kugele},
   pdfkeywords = {} ,
@@ -43,7 +43,7 @@
 \usepackage{enumitem}
 \usepackage{cleveref}
 
-\title{Brain Tumor Segmentation with Random Forests and Neural Networks}
+\title{Brain Tumor Segmentation with Random Forest and U-Net}
 
 \author{
   Shuhan Xiao \\
@@ -93,13 +93,13 @@ Four classes are predefined:
 Each 3D image for each scan type is saved in a seperate \verb+.mha+ file. The
 average size per file is about \SI{2.2}{MB}, leading to approximately
 $\SI{2.2}{MB}\cdot 275 \cdot 4 = \SI{2420}{MB}$ of compressed data.
-Uncompressed, the data size increases to about \SI{60}{GB}. In
+Uncompressed, the data size increases to over \SI{100}{GB}. In
 \cref{fig:dataex}, examples for LGG and HGG and the different scan types are
 shown.
 
 \begin{figure}
 \centering
-\includegraphics[width=0.9\textwidth]{test_image84}
+\includegraphics[width=0.99\linewidth]{scan_types_both}
 \caption{Dataset examples. }
 \label{fig:dataex}
 \end{figure}
@@ -114,7 +114,9 @@ the tumor to background ratio is less than $0.1\%$. This dataset only takes
 \SI{110}{MB} compressed on disk. We split this dataset of 3315 images further
 up into a training set of 2652 images ($80\%$) and a test set of 663 images.
 This dataset is used for both the random forest and the U-Net. The classes are
-reduced from five to two: background and tumor.
+reduced from five to two: background and tumor. Loading 10 images in the memory
+of the GPU for training takes about \SI{3}{GB}. For the random forest, using
+1000 images at once takes about \SI{30}{GB} of RAM.
 
 \section{Random Forest}
 The random forest is a set of decision trees, where each tree is fitted to a
@@ -122,10 +124,11 @@ random subset of the data and predictions are made by taking averages over the
 predictions of individual trees. It 
 
 \subsection{Features}
-A random forest classifies each pixel separately. To include information about
-the local structure, instead of using only the pixel intensities, multiple
-features are defined, such that each input pixel is an N-dimensional vector.\\
-The features we chose for this task are:
+A random forest classifies each pixel separately. Therefore, using only the
+pixel intensities would only give a good classification if the tumor can be
+identified on a single-pixel level. To include information about the local
+structure, multiple features are defined, such that each input pixel is an
+N-dimensional vector.\\ The features we chose for this task are:
 \begin{enumerate}
 \item Gaussian filter
 \begin{itemize}
@@ -157,15 +160,22 @@ The features we chose for this task are:
 \end{enumerate}
 
 Except the equalized histogram, they all share the tuneable kernel width
-$\sigma$, which is set to $\{0.3, 0.7, 1., 3.5\}$.
+$\sigma$, which is set to $\{0.3, 0.7, 1., 3.5\}$. In total, $N=29$ filters are
+used. In \cref{fig:features}, the features are shown for one example image of
+the dataset for $\sigma = 0.3$. The tumor region in the bottom left can be
+clearly identified for the Gaussian (bright), Laplacian of Gaussian (dark) and
+the equalized histogram (bright). However, for other examples the tumor is also
+pronounced in the other features.
 
 In principle one could also utilize the different scan types as features.
 However, the dataset is already very big and therefore it was decided to not
-take the other scan types as features.
+take the other scan types as features. This also allows for a fair comparison
+between the random forest and the U-Net, as they are then trained with the same
+dataset.
 
 \begin{figure}
 \centering
-\includegraphics[width=0.9\textwidth]{features_t}
+\includegraphics[width=0.99\textwidth]{features}
 \caption{Features for the random forest. }
 \label{fig:features}
 \end{figure}

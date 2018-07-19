@@ -39,6 +39,9 @@
 \definecolor{hdcolordark}{HTML}{4f0c12}
 \definecolor{jblue}{HTML}{c81f32}
 
+\usepackage{siunitx}
+\usepackage{enumitem}
+
 % Many more colors are available for use in beamerthemeconfposter.sty
 \setbeamercolor{palette primary}   {fg=black,bg=white}
 \setbeamercolor{palette secondary} {fg=black,bg=white}
@@ -86,7 +89,7 @@
 %	TITLE SECTION 
 %----------------------------------------------------------------------------------------
 
-\title{Brain Tumor Segmentation with Random Forests and Neural Networks} % Poster title
+\title{Brain Tumor Segmentation with Random Forest and U-Net} % Poster title
 
 \author{Shuhan Xiao and Alexander Kugele} % Author(s)
 
@@ -110,20 +113,39 @@
 
 \begin{column}{\onecolwid} % The first column
 
-\begin{alertblock}{Objectives}
-.
+\begin{alertblock}{Motivation}
 \end{alertblock}
 
-\begin{block}{Dataset}
-\begin{itemize}
+\begin{alertblock}{Dataset}
+\begin{itemize}[label={}]
 \item 3D MR scans of 275 human brains
-\item shape (depth=155, height=240, width=240)
 \item 4 scan types, T1, T1c, T2 and Flair
+\item $\mathrm{depth}=155$, $\mathrm{height}=240$, $\mathrm{width}=240$
+\item $\Rightarrow 170500$ images
+\item 5 classes (we only use 2)
+\item center-cropped to $80\%$ of their size
 \end{itemize}
-\includegraphics[width=0.9\textwidth]{test_image84}
+\begin{figure}
+\centering
+\includegraphics[width=0.9\linewidth]{scan_types_trans}
+\end{figure}
 
+\end{alertblock}
 
-\end{block}
+\begin{alertblock}{Features}
+\begin{itemize}[label={}]
+\item Gaussian, LoG, Gaussian gradient
+\item Hessian and structure tensor eigenvalues
+\item equalized histogram
+\item 29 features in total
+\item 1k images + features $\approx \SI{30}{GB}$ of memory
+\end{itemize}
+\begin{figure}
+\centering
+\includegraphics[width=0.99\textwidth]{features}
+\end{figure}
+\end{alertblock}
+
 
 \end{column} % End of the first column
 
@@ -135,7 +157,16 @@
 
 \begin{column}{\onecolwid}\vspace{-.6in} % The first column within column 2 (column 2.1)
 
-\begin{block}{Materials}
+\begin{alertblock}{Random Forest}
+\begin{itemize}[label={}]
+\item trained in batch-mode \cite{batchrf}
+\item 100 estimators per batch, 3 batches of 1k images
+\item after training $\approx \SI{15}{GB}$ disk space (pickled)
+\item inference time ???, load time ???
+\end{itemize}
+\end{alertblock}
+
+\begin{block}{RF: Example}
 
 \end{block}
 
@@ -153,7 +184,7 @@
 
 \begin{alertblock}{Important Result}
 
-\end{alertblock} 
+\end{alertblock}
 
 %----------------------------------------------------------------------------------------
 
