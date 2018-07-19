@@ -22,6 +22,9 @@ except ImportError:
 
 from load import Brats15NumpyDataset
 
+import os.path
+
+
 #%%
 def dice_loss(input, target):
     smooth = 1.
@@ -157,118 +160,122 @@ class UNet(nn.Module):
         final = self.final(up1)
         return F.upsample(final, x.size()[2:], mode='bilinear',align_corners=True)
     
-def train(model, dset, n_epochs=10, batch_size=2, use_gpu=True):
-
-    dloader = DataLoader(dset, batch_size=batch_size, shuffle=True)
-    if use_gpu:
-        model.cuda()
-        
-    Loss = nn.CrossEntropyLoss()
-    # TODO: use different loss (e.g. BCE -> one hot encoded y or Dice)
-    Optimizer = torch.optim.Adam(model.parameters()) 
-    for e in range(n_epochs):
-        for e_step, (x, y) in enumerate(dloader):
-            print(e_step)
-            print(y)
-            train_step = e_step + len(dloader)*e
-            #print(x.size())
-            #x = x.numpy()
-            #y = y.numpy().astype(np.int32)
-
-            #if x.ndim == 2:
-            #    x = x[None, :]
-            #x = torch.from_numpy(x)
-            #y = torch.from_numpy(y)
-            y = y.long()
-                
-            if use_gpu:
-                x = x.cuda()
-                y = y.cuda()
-                
-            #y = y.squeeze() 
-            # Forward
-            #print('forward')
-            prediction = model(x)
-            #pred_probs = F.sigmoid(prediction)
-            #pred_probs_flat = pred_probs.view(-1)
-            
-            #y_flat = y.view(-1)
-            # Loss
-            loss = Loss(prediction, y.squeeze(1))
-            #print('acc')
-		            #acc = torch.mean(torch.eq(torch.argmax(prediction, dim=-1),y).float())
-            Optimizer.zero_grad()
-            # Backward
-            #print('backward')
-            loss.backward()              
-            # Update
-            Optimizer.step()   
-            if train_step % 25 == 0:
-#                print('{}: Batch-Accuracy = {}, Loss = {}'\
-#                          .format(train_step, float(acc), float(loss)))
-            	print('{}: Loss = {}'.format(train_step, float(loss)))
-        if train_step % 10000 == 0:
-             torch.save(model.state_dict(), 'training-{}-{}.ckpt'.format(e,train_step))
-
-        checkpoint = {
-            'epoch': e + 1,
-            'state_dict': model.state_dict(),
-            'optimizer' : Optimizer.state_dict(),
-        }
-        torch.save(checkpoint, 'unet1024-{}'.format(e+1))
-
-def test(model, dset, n_classes):
-
-    dloader = DataLoader(dset, batch_size=1, shuffle=False)
-    #sums = [0.0, 0.0]
-    dice = 0
-    #jj = 0
-    N = len(dloader)
-    for ii, (x, y) in enumerate(dloader):
-        y_pred = np.argmax(model(x).detach().numpy(), axis=1)
-        y_pred[y_pred>0] = 1
-        y_pred_1h = np.eye(n_classes)[y_pred] #one hot vector
-        y_pred_1h = y_pred_1h.squeeze()[:,:,1]
-        y = y.detach().numpy()
-        y[y>0] = 1
-        y_1h = np.eye(n_classes)[y]
-        y_1h = y_1h.squeeze()[:,:,1]
-        dice_sc = dice_score(y_pred_1h,y_1h)
-        dice += dice_sc
-        #jj += 1
-        if ii%400==0:
-            print(dice_sc)
-            #print('dice score so far (step {}): {}'.format(jj,dice/jj))
-            #np.savez_compressed('./test_sum.npz', dice=dice, steps=jj)
-            print('dice score so far (step {}): {}'.format(ii,dice/(ii+1)))
-        if ii%1000==0:
-            np.savez_compressed('./test_dice.npz', dice=dice/(ii+1), steps=ii)
-
-
-    np.savez_compressed('./test_dice.npz',dice=dice/N, steps=ii)
-    #return dice, y_1h, y_pred_1h,x.detach().numpy()
-    return dice
-
-if __name__ == '__main__':
-
-    n_classes = 5
-    use_gpu = torch.cuda.is_available()
-    if 'model' not in locals(): # only reload if model doesn't exist
-        model = UNet(n_classes)  
-        if use_gpu:
-            checkpoint = torch.load('training-10.ckpt') #gpu
-        else:
-            checkpoint= torch.load('training-10.ckpt',map_location=lambda storage, location: storage)   
-    #    dset_train=Brats15NumpyDataset('./data/brats2015_MR_T2.h5', train=True, train_split=0.8, random_state=-1,
-    #                 transform=None, preload_data=False, tensor_conversion=False)
-    #    train(model, dset_train, n_epochs=5, batch_size=2, use_gpu=use_gpu) 
-        model.load_state_dict(checkpoint)
-    #test    
-    dset_test=Brats15NumpyDataset('./data/brats2015_MR_T2.h5', train=False, train_split=0.8, random_state=-1,
-                 transform=None, preload_data=False, tensor_conversion=False)
-    #dice, y, y_pred,x = test(model, dset_test, 2)
-    dice = test(model, dset_test, 2)
-    
+#def train(model, dset, n_epochs=10, batch_size=2, use_gpu=True):
+#
+#    dloader = DataLoader(dset, batch_size=batch_size, shuffle=True)
+#    if use_gpu:
+#        model.cuda()
+#        
+#    Loss = nn.CrossEntropyLoss()
+#    # TODO: use different loss (e.g. BCE -> one hot encoded y or Dice)
+#    Optimizer = torch.optim.Adam(model.parameters()) 
+#    for e in range(n_epochs):
+#        for e_step, (x, y) in enumerate(dloader):
+#            print(e_step)
+#            print(y)
+#            train_step = e_step + len(dloader)*e
+#            #print(x.size())
+#            #x = x.numpy()
+#            #y = y.numpy().astype(np.int32)
+#
+#            #if x.ndim == 2:
+#            #    x = x[None, :]
+#            #x = torch.from_numpy(x)
+#            #y = torch.from_numpy(y)
+#            y = y.long()
+#                
+#            if use_gpu:
+#                x = x.cuda()
+#                y = y.cuda()
+#                
+#            #y = y.squeeze() 
+#            # Forward
+#            #print('forward')
+#            prediction = model(x)
+#            #pred_probs = F.sigmoid(prediction)
+#            #pred_probs_flat = pred_probs.view(-1)
+#            
+#            #y_flat = y.view(-1)
+#            # Loss
+#            loss = Loss(prediction, y.squeeze(1))
+#            #print('acc')
+#		            #acc = torch.mean(torch.eq(torch.argmax(prediction, dim=-1),y).float())
+#            Optimizer.zero_grad()
+#            # Backward
+#            #print('backward')
+#            loss.backward()              
+#            # Update
+#            Optimizer.step()   
+#            if train_step % 25 == 0:
+##                print('{}: Batch-Accuracy = {}, Loss = {}'\
+##                          .format(train_step, float(acc), float(loss)))
+#            	print('{}: Loss = {}'.format(train_step, float(loss)))
+#        if train_step % 10000 == 0:
+#             torch.save(model.state_dict(), 'training-{}-{}.ckpt'.format(e,train_step))
+#
+#        checkpoint = {
+#            'epoch': e + 1,
+#            'state_dict': model.state_dict(),
+#            'optimizer' : Optimizer.state_dict(),
+#        }
+#        torch.save(checkpoint, 'unet1024-{}'.format(e+1))
+#
+#def test(model, dset, n_classes, start=0, dice_start=0.0):
+#
+#    dloader = DataLoader(dset, batch_size=1, shuffle=False)
+#    dice = dice_start*(start+1)
+#    #jj = 0
+#    #N = len(dloader)
+#    for ii, (x, y) in enumerate(dloader):
+#        if ii>=start:
+#            y_pred = np.argmax(model(x).detach().numpy(), axis=1)
+#            y_pred[y_pred>0] = 1 # classes 1,2,3,4 = complete tumor
+#            y_pred_1h = np.eye(n_classes)[y_pred] #one hot vector
+#            y_pred_1h = y_pred_1h.squeeze()[:,:,1] #only use class with tumor to calculate dice score
+#            y = y.detach().numpy()
+#            y[y>0] = 1
+#            y_1h = np.eye(n_classes)[y]
+#            y_1h = y_1h.squeeze()[:,:,1]
+#            dice_sc = dice_score(y_pred_1h,y_1h)
+#            dice += dice_sc
+#            #jj += 1
+#            if ii%400==0:
+#                print(dice_sc)
+#                #print('dice score so far (step {}): {}'.format(jj,dice/jj))
+#                #np.savez_compressed('./test_sum.npz', dice=dice, steps=jj)
+#                print('dice score so far (step {}): {}'.format(ii,dice/(ii+1)))
+#            if ii%1000==0:
+#                np.savez_compressed('./test_dice.npz', dice=dice/(ii+1), steps=ii)
+#
+#    np.savez_compressed('./test_dice.npz',dice=dice/(ii+1), steps=ii)
+#    #return dice, y_1h, y_pred_1h,x.detach().numpy()
+#    return dice
+#
+#if __name__ == '__main__':
+#
+#    n_classes = 5
+#    use_gpu = torch.cuda.is_available()
+#    if 'model' not in locals(): # only reload if model doesn't exist
+#        model = UNet(n_classes)  
+#        if use_gpu:
+#            checkpoint = torch.load('training-10.ckpt') #gpu
+#        else:
+#            checkpoint= torch.load('training-10.ckpt',map_location=lambda storage, location: storage)   
+#    #    dset_train=Brats15NumpyDataset('./data/brats2015_MR_T2.h5', train=True, train_split=0.8, random_state=-1,
+#    #                 transform=None, preload_data=False, tensor_conversion=False)
+#    #    train(model, dset_train, n_epochs=5, batch_size=2, use_gpu=use_gpu) 
+#        model.load_state_dict(checkpoint)
+#    #test    
+#    dset_test=Brats15NumpyDataset('./data/brats2015_MR_T2.h5', train=False, train_split=0.8, random_state=-1,
+#                 transform=None, preload_data=False, tensor_conversion=False)
+#    #dice, y, y_pred,x = test(model, dset_test, 2)
+#    if os.path.isfile('test_dice.npz'):
+#        file = np.load('test_dice.npz')
+#        dice_start = file['dice']
+#        step = file['steps']
+#        dice = test(model, dset_test, 2, start=step+1, dice_start=dice_start)
+#    else:
+#        dice = test(model, dset_test, 2)
 
 #%%    
 ##############################    
@@ -293,4 +300,4 @@ if __name__ == '__main__':
 #plt.imshow(np.argmax(y_pred,axis=2))
 #plt.subplot(1,3,3)
 #plt.imshow(x)
-#
+#%%
