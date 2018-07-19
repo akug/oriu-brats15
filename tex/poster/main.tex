@@ -171,16 +171,18 @@ Efficiently segmenting tumors automatically improves treatment planing
 
 \begin{column}{\onecolwid}\vspace{-.6in} % The first column within column 2 (column 2.1)
 
-\begin{alertblock}{Random Forest}
+\begin{alertblock}{Random Forest \cite{batchrf}}
 \begin{itemize}[label={}]
-\item trained in batch-mode \cite{batchrf}
+\item default settings of scikit-learn implementation
+\item trained in batch-mode
 \item 100 estimators per batch, 3 batches of 1k images
 \end{itemize}
 Advantages and disadvantages
 \begin{description}
-\item[\cplus] Easier to understand
+\item[\cplus] Simple
 \item[\cplus] Rarely overfits
-\item[\cplus] Single pixel training
+\item[\cplus] Variable image input size
+\item[\cplus] Optimized implementation available
 \item[\cminus] No GPU training
 \item[\cminus] No incremental training (for vanilla RF)
 \item[\cminus] Features have to be hand-selected
@@ -192,22 +194,33 @@ Advantages and disadvantages
 
 \begin{column}{\onecolwid}\vspace{-.6in} % The second column within column 2 (column 2.2)
 
-\begin{block}{Methods}
-
-\end{block}
+\begin{alertblock}{U-Net \cite{ronneberger2015u}}
+\vspace*{12pt}
+\begin{itemize}[label={}]
+%\item U-Net\cite{ronneberger2015u} (commonly used for segmentation of biomedical images)
+%\item input image size: $240\times240$
+\item modifications: depth = 4, loss = 1 - Dice, padding
+\item \textbf{Training:} 10 images/batch, 30 epochs
+\end{itemize}
+\begin{figure}
+\centering
+\includegraphics[width=0.9\linewidth]{u_net}
+\end{figure}
+%\vfill
+\end{alertblock}
 
 \end{column} % End of column 2.2
 
 \end{columns} % End of the split of column 2 - any content after this will now take up 2 columns width
 
-\begin{alertblock}{Comparison}
+\begin{alertblock}{Final Scores}
 \centering
 	\begin{tabular}{lrrr}
 	\toprule
 	 & Dice [$\%$] & Sensitivity [$\%$] & Specificity [$\%$] \\
 	\midrule
 	Random Forest & $65.9$ & $77.1$ & $99.1$ \\
-	U-Net & & & \\
+	U-Net & $69.3$ & $73.1$ & \\
 	\bottomrule
 	\end{tabular}
 \end{alertblock}
@@ -242,9 +255,23 @@ Advantages and disadvantages
 %	RESULTS
 %----------------------------------------------------------------------------------------
 
-\begin{block}{Results}
+\begin{block}{U-Net: Results}
+\begin{itemize}[label={}]
+\item training time $\approx \SI{1.5}{h}$
+\item inference time $\approx \si{0.5}{s}$ per image
+\item load time $\approx \si{20}{s}$
+\item disk space $\approx \SI{0.3}{GB}$
+\item memory space during inference $\approx \SI{0.7}{GB}$
+\end{itemize}
+\begin{figure}
+\centering
+\includegraphics[width=0.9\linewidth]{test_Flair_84}
+\end{figure}
 
-
+\begin{figure}
+%\centering
+\includegraphics[width=0.9\linewidth]{boxplots}
+\end{figure}
 \end{block}
 
 %----------------------------------------------------------------------------------------
@@ -263,12 +290,21 @@ Advantages and disadvantages
 %	CONCLUSION
 %----------------------------------------------------------------------------------------
 
-\begin{block}{Conclusion}
+\begin{block}{Loss}
+\begin{figure}
+%\centering
+\includegraphics[width=0.9\linewidth]{trainingloss}
+\end{figure}
 
 \end{block}
 
-\begin{block}{Additional Information}
-
+\begin{block}{Conclusion}
+\begin{itemize}[label={}]
+\item Both methods achieve similar results regarding the scores
+\item Random Forest is easier to set up
+\item U-Net is easier and faster to train
+\item None of the two methods could achieve state-of-the-art results out of the box
+\end{itemize}
 \end{block}
 
 \begin{block}{References}
@@ -281,9 +317,9 @@ Advantages and disadvantages
 
 %\setbeamercolor{block title}{fg=red,bg=white} % Change the block title color
 
-\begin{block}{Acknowledgements}
-
-\end{block}
+%\begin{block}{Acknowledgements}
+%
+%\end{block}
 
 %----------------------------------------------------------------------------------------
 %	CONTACT INFORMATION
