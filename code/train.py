@@ -145,5 +145,6 @@ if __name__ == '__main__':
     
     dset_train=Brats15NumpyDataset('./data/brats2015_MR_Flair_LGG_r1.h5', train=True, train_split=0.8, random_state=-1,
                      transform=None, preload_data=False, tensor_conversion=False)
-    train(model, dset_train, n_epochs=10, batch_size=2, use_gpu=use_gpu, load_checkpoint=True, ckpt_file='training.pt') 
+    #train(model, dset_train, n_epochs=10, batch_size=2, use_gpu=use_gpu, load_checkpoint=True, ckpt_file='training.pt') 
+    train(model, dset_train, n_epochs=5, batch_size=2, use_gpu=use_gpu, load_checkpoint=True, ckpt_file='training.pt') 
         
