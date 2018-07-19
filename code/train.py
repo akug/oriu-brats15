@@ -26,8 +26,13 @@ def dice_loss(input, target):
               (iflat.sum() + tflat.sum() + smooth)))
     
 
-def train(model, dset, n_epochs=10, batch_size=2, use_gpu=True):
-
+def train(model, dset, n_epochs=10, batch_size=2, use_gpu=True, load_checkpoint=False, ckpt_file=None):
+    '''
+    outputs: 
+        loss_history.json
+        training.pt
+        training-{}-{}.ckpt
+    '''
     dloader = DataLoader(dset, batch_size=batch_size, shuffle=True)
     if use_gpu:
         model.cuda()
@@ -37,71 +42,99 @@ def train(model, dset, n_epochs=10, batch_size=2, use_gpu=True):
     
     Optimizer = torch.optim.Adam(model.parameters()) 
     history = {'train_step': [],'loss': []} 
+    start_epoch = 0
+    start_e_step = 0
     
-    for e in range(n_epochs):
+    if load_checkpoint:
+        if use_gpu:
+            checkpoint = torch.load(ckpt_file) #gpu
+        else:
+            checkpoint= torch.load(ckpt_file,map_location=lambda storage, location: storage)   
+    #        model.load_state_dict(checkpoint)
+        model.load_state_dict(checkpoint['state_dict'])
+        Optimizer.load_state_dict(checkpoint['optimizer'])
+        start_epoch = checkpoint['epoch']-1
+        start_e_step = (checkpoint['step']+1)%len(dloader)
+        if start_e_step == 0:
+            start_epoch += 1
+        
+        print(len(dloader))
+        print("=> loaded checkpoint (epoch {} step {})".format(checkpoint['epoch'],checkpoint['step']))
+        with open('loss_history.json') as f:
+            history = json.loads(f.read())
+        
+    
+    for e in range(start_epoch,n_epochs):
+        print('epoch step: {}'.format(e))
         for e_step, (x, y) in enumerate(dloader):
-            train_step = e_step + len(dloader)*e
-            #print(x.size())
-            #x = x.numpy()
-            #y = y.numpy().astype(np.int32)
-
-            #if x.ndim == 2:
-            #    x = x[None, :]
-            #x = torch.from_numpy(x)
-            #y = torch.from_numpy(y)
-            y = torch.clamp(y, max=1)
-            y = y.float()
-            # y= y.long()
+            if e_step >= start_e_step:
+                train_step = e_step + len(dloader)*e
+                #print(x.size())
+                #x = x.numpy()
+                #y = y.numpy().astype(np.int32)
+    
+                #if x.ndim == 2:
+                #    x = x[None, :]
+                #x = torch.from_numpy(x)
+                #y = torch.from_numpy(y)
+                y = torch.clamp(y, max=1)
+                y = y.float()
+                # y= y.long()
+                    
+                if use_gpu:
+                    x = x.cuda()
+                    y = y.cuda()
+                    
+                #y = y.squeeze() 
+                # Forward
+                #print('forward')
+                prediction = model(x)
+                #pred_probs = F.sigmoid(prediction)
+                #pred_probs_flat = pred_probs.view(-1)
                 
-            if use_gpu:
-                x = x.cuda()
-                y = y.cuda()
-                
-            #y = y.squeeze() 
-            # Forward
-            #print('forward')
-            prediction = model(x)
-            #pred_probs = F.sigmoid(prediction)
-            #pred_probs_flat = pred_probs.view(-1)
-            
-            #y_flat = y.view(-1)
-            # Loss
-            #if n_classes > 1:
+                #y_flat = y.view(-1)
+                # Loss
+                #if n_classes > 1:
+                    #pred_probs = F.softmax(prediction,dim=1)
+                pred_probs = F.sigmoid(prediction)
                 #pred_probs = F.softmax(prediction,dim=1)
-            pred_probs = F.sigmoid(prediction)
-            #pred_probs = F.softmax(prediction,dim=1)
-            loss = dice_loss(pred_probs, y)
-            #print('acc')
-		            #acc = torch.mean(torch.eq(torch.argmax(prediction, dim=-1),y).float())
-            Optimizer.zero_grad()
-            # Backward
-            #print('backward')
-            loss.backward()              
-            # Update
-            Optimizer.step()
-            del prediction, pred_probs
-            if train_step % 200 == 0 or train_step<10:
-#                print('{}: Batch-Accuracy = {}, Loss = {}'\
-#                          .format(train_step, float(acc), float(loss)))
-                print('{}: Loss/ 1-Dice = {}'.format(train_step, float(loss)))
-                history['train_step'].append(train_step)
-                history['loss'].append(float(loss))
-                
-                
-            if train_step % 2000 == 0:
-                checkpoint = {
+                loss = dice_loss(pred_probs, y)
+                #print('acc')
+    		            #acc = torch.mean(torch.eq(torch.argmax(prediction, dim=-1),y).float())
+                Optimizer.zero_grad()
+                # Backward
+                #print('backward')
+                loss.backward()              
+                # Update
+                Optimizer.step()
+                del prediction, pred_probs
+                if train_step % 200 == 0 or train_step<10:
+    #                print('{}: Batch-Accuracy = {}, Loss = {}'\
+    #                          .format(train_step, float(acc), float(loss)))
+                    print('{}: Loss/ 1-Dice = {}'.format(train_step, float(loss)))
+                    history['train_step'].append(train_step)
+                    history['loss'].append(float(loss))
+                    
+                    
+                if train_step % 2000 == 0:
+                    checkpoint = {
+                        'epoch': e + 1,
+                        'step': train_step,
+                        'state_dict': model.state_dict(),
+                        'optimizer' : Optimizer.state_dict(),
+                    }
+                    torch.save(checkpoint, 'training.pt')
+                    with open('loss_history.json', 'w') as fp:
+                        json.dump(history, fp)
+                    
+            
+        checkpoint = {
                     'epoch': e + 1,
                     'step': train_step,
                     'state_dict': model.state_dict(),
                     'optimizer' : Optimizer.state_dict(),
                 }
-                torch.save(checkpoint, 'training.pt')
-                with open('loss_history.json', 'w') as fp:
-                    json.dump(history, fp)
-                
-            
-
-        torch.save(model.state_dict(), 'training-{}-{}.ckpt'.format(e+1,train_step))
+        torch.save(model.state_dict(), 'training-{}-{}.pt'.format(e+1,train_step))
         
 if __name__ == '__main__':
 
@@ -109,15 +142,8 @@ if __name__ == '__main__':
     use_gpu = torch.cuda.is_available()
     #if 'model' not in locals(): # only reload if model doesn't exist
     model = UNet(n_classes)  
-#        if use_gpu:
-#            checkpoint = torch.load('training-10.ckpt') #gpu
-#        else:
-#            checkpoint= torch.load('training-10.ckpt',map_location=lambda storage, location: storage)   
-#        model.load_state_dict(checkpoint)
-#        model.load_state_dict(checkpoint['state_dict'])
-#        Optimizer.load_state_dict(checkpoint['optimizer'])
-#        print("=> loaded checkpoint (epoch {})".format(checkpoint['epoch']))
+    
     dset_train=Brats15NumpyDataset('./data/brats2015_MR_Flair_LGG_r1.h5', train=True, train_split=0.8, random_state=-1,
                      transform=None, preload_data=False, tensor_conversion=False)
-    train(model, dset_train, n_epochs=10, batch_size=2, use_gpu=use_gpu) 
+    train(model, dset_train, n_epochs=10, batch_size=2, use_gpu=use_gpu, load_checkpoint=True, ckpt_file='training.pt') 
         
