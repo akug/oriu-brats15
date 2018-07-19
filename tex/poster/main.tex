@@ -41,6 +41,16 @@
 
 \usepackage{siunitx}
 \usepackage{enumitem}
+\usepackage{booktabs} % professional table layout
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+\newcommand*\circled[2]{\tikz[baseline=(char.base)]{%
+            \node[shape=circle,fill=#2,draw,inner sep=2pt] (char) {#1};}}
+\newcommand*\cwhite[1]{\tikz[baseline=(char.base)]{%
+            \node[shape=circle,fill=white,draw,inner sep=2pt] (char) {#1};}}
+\newcommand*\cplus{\circled{\small$+$}{green}}
+\newcommand*\cminus{\circled{\small$-$}{red}}
 
 % Many more colors are available for use in beamerthemeconfposter.sty
 \setbeamercolor{palette primary}   {fg=black,bg=white}
@@ -113,8 +123,14 @@
 
 \begin{column}{\onecolwid} % The first column
 
-\begin{alertblock}{Motivation}
-\end{alertblock}
+\begin{block}{Motivation}
+\begin{itemize}[label={}]
+\item Brain tumors need immediate treatment
+\item Even experts can not segment perfectly
+\item Takes time to go through a complete MR scan
+\end{itemize}
+Efficiently segmenting tumors automatically improves treatment planing
+\end{block}
 
 \begin{alertblock}{Dataset}
 \begin{itemize}[label={}]
@@ -126,13 +142,12 @@
 \item center-cropped to $80\%$ of their size
 \end{itemize}
 \begin{figure}
-\centering
 \includegraphics[width=0.9\linewidth]{scan_types_trans}
 \end{figure}
 
 \end{alertblock}
 
-\begin{alertblock}{Features}
+\begin{block}{Features}
 \begin{itemize}[label={}]
 \item Gaussian, LoG, Gaussian gradient
 \item Hessian and structure tensor eigenvalues
@@ -141,10 +156,9 @@
 \item 1k images + features $\approx \SI{30}{GB}$ of memory
 \end{itemize}
 \begin{figure}
-\centering
-\includegraphics[width=0.99\textwidth]{features}
+\includegraphics[width=0.97\textwidth]{features}
 \end{figure}
-\end{alertblock}
+\end{block}
 
 
 \end{column} % End of the first column
@@ -161,14 +175,18 @@
 \begin{itemize}[label={}]
 \item trained in batch-mode \cite{batchrf}
 \item 100 estimators per batch, 3 batches of 1k images
-\item after training $\approx \SI{15}{GB}$ disk space (pickled)
-\item inference time ???, load time ???
 \end{itemize}
+Advantages and disadvantages
+\begin{description}
+\item[\cplus] Easier to understand
+\item[\cplus] Rarely overfits
+\item[\cplus] Single pixel training
+\item[\cminus] No GPU training
+\item[\cminus] No incremental training (for vanilla RF)
+\item[\cminus] Features have to be hand-selected
+\end{description}
 \end{alertblock}
 
-\begin{block}{RF: Example}
-
-\end{block}
 
 \end{column} % End of column 2.1
 
@@ -182,8 +200,16 @@
 
 \end{columns} % End of the split of column 2 - any content after this will now take up 2 columns width
 
-\begin{alertblock}{Important Result}
-
+\begin{alertblock}{Comparison}
+\centering
+	\begin{tabular}{lrrr}
+	\toprule
+	 & Dice [$\%$] & Sensitivity [$\%$] & Specificity [$\%$] \\
+	\midrule
+	Random Forest & $65.9$ & $77.1$ & $99.1$ \\
+	U-Net & & & \\
+	\bottomrule
+	\end{tabular}
 \end{alertblock}
 
 %----------------------------------------------------------------------------------------
@@ -192,13 +218,18 @@
 
 \begin{column}{\onecolwid} % The first column within column 2 (column 2.1)
 
-%----------------------------------------------------------------------------------------
-%	MATHEMATICAL SECTION
-%----------------------------------------------------------------------------------------
-
-\begin{block}{Mathematical Section}
-
-
+\begin{block}{RF: Results}
+\begin{itemize}[label={}]
+\item training time $\approx \SI{13}{h}$
+\item inference time $\approx \si{2-20}{s}$ per image
+\item load time $\approx \si{310}{s}$
+\item disk space $\approx \SI{15}{GB}$ (pickled)
+\item memory space during inference $\approx \SI{20}{GB}$
+\end{itemize}
+\begin{figure}
+\centering
+\includegraphics[width=0.9\linewidth]{rf_prediction_84}
+\end{figure}
 \end{block}
 
 %----------------------------------------------------------------------------------------

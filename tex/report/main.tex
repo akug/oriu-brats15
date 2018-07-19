@@ -42,6 +42,11 @@
 \usepackage{siunitx}
 \usepackage{enumitem}
 \usepackage{cleveref}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+\newcommand*\circled[1]{\tikz[baseline=(char.base)]{%
+            \node[shape=circle,fill=blue!0,draw,inner sep=2pt] (char) {#1};}}
 
 \title{Brain Tumor Segmentation with Random Forest and U-Net}
 
