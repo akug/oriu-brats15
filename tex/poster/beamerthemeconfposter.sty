@@ -197,7 +197,7 @@
  \leavevmode
   \begin{columns}
    \begin{column}{\linewidth}
-    \vskip1cm
+    \vspace*{1.cm}
     \centering
     \usebeamercolor{title in headline}{\color{jblue}\Huge{\textbf{\inserttitle}}\\[0.5ex]}
     \usebeamercolor{author in headline}{\color{fg}\Large{\insertauthor}\\[1ex]}
@@ -214,7 +214,7 @@
 % Block definition
 \setbeamertemplate{block begin}
 {
-  \par\vskip\medskipamount
+  %\par\vskip\medskipamount
   \begin{beamercolorbox}[colsep*=0ex,dp={2ex},center]{block title}
     \vskip-0.25cm
     \usebeamerfont{block title}\large\insertblocktitle
@@ -239,13 +239,13 @@
 \setbeamertemplate{block end}
 {
   \end{beamercolorbox}
-  \vskip\smallskipamount
+  %\vskip\smallskipamount
 }
 
 % Alert block definition (with frame)
 \setbeamertemplate{block alerted begin}
 {
-  \par\vskip\medskipamount
+  %\par\vskip\medskipamount
   \begin{beamercolorbox}[sep=0ex,rounded=true,center,dp={2ex}]{block alerted title}
     \vskip0.01cm
     \usebeamerfont{block title}\large\insertblocktitle
@@ -272,5 +272,5 @@
   \end{center}
   \end{beamercolorbox}
   \end{beamercolorbox}
-  \vskip\smallskipamount
+  %\vskip\smallskipamount
 }

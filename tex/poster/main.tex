@@ -138,7 +138,7 @@ Efficiently segmenting tumors automatically improves treatment planing
 \item 4 scan types, T1, T1c, T2 and Flair
 \item $\mathrm{depth}=155$, $\mathrm{height}=240$, $\mathrm{width}=240$
 \item $\Rightarrow 170500$ images
-\item 5 classes (we only use 2)
+\item 5 classes (we only use 2: tumor/background)
 \item center-cropped to $80\%$ of their size
 \end{itemize}
 \begin{figure}
@@ -221,7 +221,7 @@ Advantages and disadvantages
 	\midrule
 	Random Forest & $\num{65.9}$ & $\num{77.1}$ & $\num{99.1}$ \\
 	U-Net & $\num{69.3}$ & $\num{73.1}$ & $\num{99.4}$ \\
-	winner 2017 \cite{brats2017} & $\num{90.1}$ &  & \\
+	winner 2017 \cite{brats2017} & $\num{90.1}$ & \num{89.5} & - \\
 	\bottomrule
 	\end{tabular}
 \end{alertblock}
