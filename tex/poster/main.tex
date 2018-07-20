@@ -217,10 +217,11 @@ Advantages and disadvantages
 \centering
 	\begin{tabular}{lrrr}
 	\toprule
-	 & Dice [$\%$] & Sensitivity [$\si{\%}$] & Specificity [$\%$] \\
+	 & Dice [$\%$] & Sensitivity [$\%$] & Specificity [$\%$] \\
 	\midrule
-	Random Forest & $\si{65.9}$ & $\si{77.1}$ & $\si{99.1}$ \\
-	U-Net & $\si{69.3}$ & $\si{73.1}$ & $\si{99.4}$ \\
+	Random Forest & $\num{65.9}$ & $\num{77.1}$ & $\num{99.1}$ \\
+	U-Net & $\num{69.3}$ & $\num{73.1}$ & $\num{99.4}$ \\
+	winner 2017 \cite{brats2017} & $\num{90.1}$ &  & \\
 	\bottomrule
 	\end{tabular}
 \end{alertblock}
@@ -240,12 +241,10 @@ Advantages and disadvantages
 \item memory space during inference $\approx \SI{20}{GB}$
 \end{itemize}
 \begin{figure}
-\centering
-\includegraphics[width=0.8\linewidth]{rf_prediction_84}
+\includegraphics[width=0.7\linewidth]{rf_prediction_84}
 \end{figure}
 \begin{figure}
-\centering
-\includegraphics[width=0.8\linewidth]{boxplots}
+\includegraphics[width=0.68\linewidth]{boxplot_rf}
 \end{figure}
 \end{block}
 
@@ -268,13 +267,11 @@ Advantages and disadvantages
 \item memory space during inference $\approx \SI{0.7}{GB}$
 \end{itemize}
 \begin{figure}
-\centering
 \includegraphics[width=0.7\linewidth]{test_Flair_84}
 \end{figure}
 
 \begin{figure}
-%\centering
-\includegraphics[width=0.7\linewidth]{boxplots}
+\includegraphics[width=0.68\linewidth]{boxplots}
 \end{figure}
 \end{block}
 
@@ -295,6 +292,12 @@ Advantages and disadvantages
 %----------------------------------------------------------------------------------------
 
 \begin{block}{Loss}
+\begin{itemize}[label={}]
+\item Dice score: $2\frac{|P_1  \ \cap  \ T_1|}{|P_1| + |T_1|}$
+\item $P_1$: tumor area of the prediction
+\item $T_1$: tumor area of the ground truth
+\end{itemize}
+
 \begin{figure}
 %\centering
 \includegraphics[width=0.9\linewidth]{trainingloss}
